@@ -1,0 +1,114 @@
+import json
+import os
+from openai import OpenAI
+from app.ai.tools import road_safety_tool, fires_tool, energy_tool
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "road_safety_tool",
+            "description": "Get road accident statistics from Greek government data. Use for questions about traffic accidents, road safety, vehicle crashes in Greece.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {
+                        "type": "integer",
+                        "description": "Filter by year (optional)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fires_tool",
+            "description": "Get forest fire data from Greek government data. Use for questions about wildfires, forest fires, burned areas in Greece.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {
+                        "type": "integer",
+                        "description": "Filter by year (optional)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "energy_tool",
+            "description": "Search ADMIE energy balance data for Greece. Use for questions about electricity production, energy consumption, renewable energy, ADMIE reports.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query about Greek energy data"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+]
+
+TOOL_MAP = {
+    "road_safety_tool": road_safety_tool,
+    "fires_tool": fires_tool,
+    "energy_tool": energy_tool,
+}
+
+
+def run_agent(user_question: str) -> tuple[str, str | None]:
+    """Run the agent and return (answer, domain)"""
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are GovChat Greece, a helpful assistant that answers questions about Greek government open data. Answer in the same language as the question (Greek or English). Be concise and factual."
+            },
+            {"role": "user", "content": user_question}
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=TOOLS,
+            tool_choice="auto"
+        )
+
+        message = response.choices[0].message
+        domain = None
+
+        if message.tool_calls:
+            tool_call = message.tool_calls[0]
+            tool_name = tool_call.function.name
+            tool_args = json.loads(tool_call.function.arguments)
+
+            domain = tool_name.replace("_tool", "")
+            tool_fn = TOOL_MAP[tool_name]
+            tool_result = tool_fn(**tool_args)
+
+            messages.append(message)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": tool_result
+            })
+
+            final_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages
+            )
+            return final_response.choices[0].message.content, domain
+
+        return message.content, domain
+    except Exception as e:
+        return f"Sorry, I encountered an error processing your question: {str(e)}", None
