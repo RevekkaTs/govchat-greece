@@ -1,4 +1,4 @@
-from app.ai.rag import search as rag_search, search_road_safety
+from app.ai.rag import search as rag_search, search_road_safety, search_fires
 
 
 def road_safety_tool(year: int | None = None) -> str:
@@ -8,8 +8,9 @@ def road_safety_tool(year: int | None = None) -> str:
 
 
 def fires_tool(year: int | None = None) -> str:
-    """Search forest fire data for Greece."""
-    return "Forest fire data is not yet available."
+    """Search forest fire and wildfire statistics for Greece (2021-2024)."""
+    query = f"fires Greece {year}" if year else "fires Greece burned area"
+    return search_fires(query)
 
 
 def energy_tool(query: str) -> str:
