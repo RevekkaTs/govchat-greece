@@ -44,7 +44,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "energy_tool",
-            "description": "Search ADMIE energy balance data for Greece. Use for questions about electricity production, energy consumption, renewable energy, ADMIE reports.",
+            "description": "Search Greek energy data. Use for ANY question about ADMIE, the Greek electricity grid, energy production, energy consumption, renewable energy, electricity prices, or the Greek energy sector.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -66,13 +66,25 @@ TOOL_MAP = {
 }
 
 
+def _detect_language(text: str) -> str:
+    for char in text:
+        if 'Ͱ' <= char <= 'Ͽ' or 'ἀ' <= char <= '῿':
+            return "Greek"
+    return "English"
+
+
 def run_agent(user_question: str) -> tuple[str, str | None]:
     """Run the agent and return (answer, domain)"""
     try:
+        language = _detect_language(user_question)
         messages = [
             {
                 "role": "system",
-                "content": "You are GovChat Greece, a helpful assistant that answers questions about Greek government open data. Answer in the same language as the question (Greek or English). Be concise and factual."
+                "content": (
+                    "You are GovChat Greece, a helpful assistant that answers questions about Greek government open data. "
+                    "IMPORTANT: Always use the available tools to answer questions — never rely on your own training knowledge for road safety, fires, or energy topics. "
+                    f"IMPORTANT: You MUST reply in {language} only. Do not use any other language."
+                )
             },
             {"role": "user", "content": user_question}
         ]
@@ -81,7 +93,7 @@ def run_agent(user_question: str) -> tuple[str, str | None]:
             model="gpt-4o-mini",
             messages=messages,
             tools=TOOLS,
-            tool_choice="auto"
+            tool_choice="required"
         )
 
         message = response.choices[0].message

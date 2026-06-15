@@ -1,136 +1,151 @@
 # GovChat Greece
 
-A conversational AI chatbot for Greek open government data, built as a final project for the AI for Developers course at AUEB.
+AI chatbot για ελληνικά ανοιχτά κυβερνητικά δεδομένα, που αναπτύχθηκε ως τελική εργασία για το μάθημα AI for Developers.
 
-## What it does
+## Τι κάνει
 
-Ask questions in natural language about:
-- **Road Safety**: Traffic accident statistics from data.gov.gr
-- **Forest Fires**: Wildfire data from data.gov.gr
-- **Energy**: Greek electricity production and consumption (ADMIE data via RAG)
+Απαντά σε ερωτήσεις φυσικής γλώσσας για τρεις θεματικές περιοχές:
+- **Τροχαία Ατυχήματα**: Στατιστικά ατυχημάτων από την Ελληνική Αστυνομία (2021–2025)
+- **Δασικές Πυρκαγιές**: Δεδομένα πυρκαγιών (υπό ανάπτυξη)
+- **Ενέργεια**: Παραγωγή και κατανάλωση ηλεκτρικής ενέργειας (δεδομένα ΑΔΜΗΕ μέσω RAG)
 
-## Architecture
+## Αρχιτεκτονική
 
 ```
-User → FastAPI (auth + chat endpoints)
-           ↓
-      AI Agent (OpenAI function calling, gpt-4o-mini)
-      ├── road_safety_tool → data.gov.gr API (live)
-      ├── fires_tool       → data.gov.gr API (live)
-      └── energy_tool      → ChromaDB RAG (pre-loaded ADMIE data)
-           ↓
-      SQLite (users, chat sessions, messages)
+Χρήστης → FastAPI (auth + chat endpoints)
+               ↓
+          AI Agent (OpenAI function calling, gpt-4o-mini)
+          ├── road_safety_tool → ChromaDB RAG (δεδομένα Αστυνομίας 2021–2025)
+          ├── fires_tool       → υπό ανάπτυξη
+          └── energy_tool      → ChromaDB RAG (δεδομένα ΑΔΜΗΕ)
+               ↓
+          SQLite (χρήστες, συνεδρίες, μηνύματα)
 ```
 
-## Course Topics Demonstrated
+## Θέματα Μαθήματος
 
-| Topic | Where |
-|-------|-------|
-| FastAPI | All API endpoints, SQLModel, auth |
-| Prompt Engineering | System prompt in agent.py, tool descriptions |
-| RAG | ChromaDB + text-embedding-3-small for energy domain |
-| AI Agents | Tool-calling loop in agent.py |
+| Θέμα | Υλοποίηση |
+|------|-----------|
+| FastAPI | Όλα τα endpoints, SQLModel, authentication |
+| Prompt Engineering | System prompt στο agent.py, περιγραφές εργαλείων |
+| RAG | ChromaDB + text-embedding-3-small για ενέργεια και τροχαία |
+| AI Agents | Βρόχος function calling στο agent.py |
 
-## Setup
+## Εγκατάσταση
 
-### Prerequisites
+### Προαπαιτούμενα
 - Python 3.11+
 - OpenAI API key
 
-### Installation
+### Βήματα
 
 ```bash
 git clone <repo-url>
 cd govchat
+python -m venv .venv
+.venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-### Configuration
+### Ρύθμιση περιβάλλοντος
 
-Copy `.env.example` to `.env` and fill in your keys:
-```bash
-cp .env.example .env
-```
+Αντιγράψτε το `.env.example` σε `.env` και συμπληρώστε τα κλειδιά:
 
-Edit `.env`:
 ```
 OPENAI_API_KEY=sk-...
 SECRET_KEY=your-random-secret-key
 ```
 
-### Seed the RAG database
+### Αρχικοποίηση βάσεων RAG
 
-Run once before first use:
+Εκτελέστε μία φορά πριν την πρώτη χρήση:
+
 ```bash
-python scripts/seed_rag.py
+python scripts/seed_rag.py           # δεδομένα ενέργειας
+python scripts/seed_road_safety.py   # δεδομένα τροχαίων
 ```
 
-### Run the server
+### Εκκίνηση server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000/docs for the interactive API documentation.
+Ανοίξτε το http://localhost:8000/docs για διαδραστική τεκμηρίωση API.
 
-## Usage
+## Χρήση
 
-### 1. Register and login
+### 1. Εγγραφή και σύνδεση
 
 ```bash
-# Register
+# Εγγραφή
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "myuser", "password": "mypass"}'
 
-# Login (get token)
+# Σύνδεση (λήψη token)
 curl -X POST http://localhost:8000/auth/login \
   -d "username=myuser&password=mypass"
 ```
 
-### 2. Start a chat session
+### 2. Δημιουργία συνεδρίας
 
 ```bash
 curl -X POST http://localhost:8000/chat/sessions \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"title": "My first chat"}'
+  -d '{"title": "Πρώτη συνεδρία"}'
 ```
 
-### 3. Ask questions
+### 3. Υποβολή ερώτησης
 
 ```bash
 curl -X POST http://localhost:8000/chat/sessions/1/messages \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"content": "How many road accidents happened in 2023?"}'
+  -d '{"content": "Πόσα θανατηφόρα τροχαία συνέβησαν το 2022;"}'
 ```
 
-### 4. Quick demo (no auth needed)
+### 4. Γρήγορο demo (χωρίς εγγραφή)
 
 ```bash
-curl "http://localhost:8000/query?q=What+is+ADMIE?"
+curl "http://localhost:8000/query?q=Τι+είναι+ο+ΑΔΜΗΕ;"
 ```
 
-## Running Tests
+## Ενδεικτικές Ερωτήσεις
+
+### Τροχαία Ατυχήματα
+- `Πόσα θανατηφόρα τροχαία συνέβησαν στην Ελλάδα το 2022;`
+- `Πόσοι άνθρωποι σκοτώθηκαν σε τροχαία το 2024;`
+- `Σύγκρινε τα τροχαία ατυχήματα του 2021 και του 2023.`
+
+### Ενέργεια (Ελληνικά)
+- `Ποιοι είναι οι στόχοι για ανανεώσιμες πηγές ενέργειας στην Ελλάδα;`
+- `Πόσο κόστιζε η ηλεκτρική ενέργεια χονδρικής το 2023;`
+- `Ποια είναι η πρόοδος της απολιγνιτοποίησης στην Ελλάδα;`
+
+### Energy (English)
+- `How much electricity did Greece produce from solar energy in 2023?`
+- `What countries is Greece electrically connected to?`
+- `What is the role of natural gas in Greece's energy mix?`
+
+## Εκτέλεση Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-All 7 tests should pass. Tests use an in-memory SQLite database and mock the OpenAI API.
+Όλα τα 7 tests πρέπει να περνάνε. Χρησιμοποιούν in-memory SQLite και mock OpenAI API.
 
 ## Screenshots
 
-*(Add screenshots of Swagger UI and sample conversations here)*
+*(Προσθέστε screenshots από το Swagger UI και δείγματα συνομιλιών)*
 
-## Future Improvements
+## Μελλοντικές Βελτιώσεις
 
-- **More datasets**: Add crime statistics, health data, economic indicators from data.gov.gr
-- **Conversation memory**: Include previous messages in agent context for follow-up questions
-- **Streaming responses**: Stream AI responses token-by-token for better UX
-- **Admin dashboard**: View all users and conversations via admin endpoints
-- **Better RAG**: Load real ADMIE data from their published reports via PDF parsing
-- **Caching**: Cache frequent API calls to data.gov.gr to reduce latency
-- **Rate limiting**: Protect endpoints from abuse
-- **Docker**: Add Dockerfile for easy deployment
+- **Περισσότερα datasets**: Στατιστικά εγκληματικότητας, υγείας, οικονομικοί δείκτες από το data.gov.gr
+- **Μνήμη συνομιλίας**: Συμπερίληψη προηγούμενων μηνυμάτων στο context του agent
+- **Streaming απαντήσεις**: Ροή token-by-token για καλύτερη εμπειρία χρήστη
+- **Dashboard διαχειριστή**: Προβολή χρηστών και συνομιλιών μέσω admin endpoints
+- **Βελτιωμένο RAG**: Φόρτωση πραγματικών δεδομένων ΑΔΜΗΕ από PDF αναφορές
+- **Docker**: Dockerfile για εύκολη ανάπτυξη
