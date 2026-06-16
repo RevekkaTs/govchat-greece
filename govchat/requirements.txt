@@ -10,3 +10,5 @@ httpx
 python-dotenv
 python-multipart
 pytest
+streamlit
+requests

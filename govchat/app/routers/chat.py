@@ -69,16 +69,34 @@ def send_message(
     if chat_session.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
+    is_first_message = not session.exec(
+        select(ChatMessage).where(ChatMessage.session_id == session_id).limit(1)
+    ).first()
+
+    recent = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.id.desc())
+        .limit(5)
+    ).all()
+    history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
+
     user_message = ChatMessage(
         session_id=session_id,
         role="user",
         content=body.content,
     )
     session.add(user_message)
+
+    if is_first_message:
+        title = body.content if len(body.content) <= 50 else body.content[:47] + "..."
+        chat_session.title = title
+        session.add(chat_session)
+
     session.commit()
     session.refresh(user_message)
 
-    ai_reply, detected_domain = run_agent(body.content)
+    ai_reply, detected_domain = run_agent(body.content, history=history)
     assistant_message = ChatMessage(
         session_id=session_id,
         role="assistant",

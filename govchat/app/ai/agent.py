@@ -73,7 +73,7 @@ def _detect_language(text: str) -> str:
     return "English"
 
 
-def run_agent(user_question: str) -> tuple[str, str | None]:
+def run_agent(user_question: str, history: list[dict] | None = None) -> tuple[str, str | None]:
     """Run the agent and return (answer, domain)"""
     try:
         language = _detect_language(user_question)
@@ -83,11 +83,14 @@ def run_agent(user_question: str) -> tuple[str, str | None]:
                 "content": (
                     "You are GovChat Greece, a helpful assistant that answers questions about Greek government open data. "
                     "IMPORTANT: Always use the available tools to answer questions — never rely on your own training knowledge for road safety, fires, or energy topics. "
+                    "IMPORTANT: Use the conversation history to understand follow-up questions and pick the correct tool. "
                     f"IMPORTANT: You MUST reply in {language} only. Do not use any other language."
                 )
-            },
-            {"role": "user", "content": user_question}
+            }
         ]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user_question})
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -100,27 +103,26 @@ def run_agent(user_question: str) -> tuple[str, str | None]:
         domain = None
 
         if message.tool_calls:
-            tool_call = message.tool_calls[0]
-            tool_name = tool_call.function.name
-            tool_args = json.loads(tool_call.function.arguments)
-
-            domain = tool_name.replace("_tool", "")
-            tool_fn = TOOL_MAP[tool_name]
-            tool_result = tool_fn(**tool_args)
-
             messages.append(message)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": tool_result
-            })
+            for tool_call in message.tool_calls:
+                tool_name = tool_call.function.name
+                tool_args = json.loads(tool_call.function.arguments)
+                if domain is None:
+                    domain = tool_name.replace("_tool", "")
+                tool_fn = TOOL_MAP[tool_name]
+                tool_result = tool_fn(**tool_args)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": tool_result
+                })
 
             final_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages
             )
-            return final_response.choices[0].message.content, domain
+            return final_response.choices[0].message.content or "", domain
 
-        return message.content, domain
+        return message.content or "", domain
     except Exception as e:
         return f"Sorry, I encountered an error processing your question: {str(e)}", None
