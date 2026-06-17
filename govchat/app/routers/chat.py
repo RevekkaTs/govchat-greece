@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from app.ai.agent import run_agent
 from app.db import get_session
 from app.dependencies import get_current_user
-from app.models import ChatSession, ChatMessage, User
+from app.models import ChatMessage, ChatSession, User
 
 
 class CreateSessionRequest(BaseModel):
@@ -25,6 +25,10 @@ def create_session(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
+    if current_user.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user"
+        )
     chat_session = ChatSession(title=body.title, user_id=current_user.id)
     session.add(chat_session)
     session.commit()
@@ -65,9 +69,13 @@ def send_message(
 ):
     chat_session = session.get(ChatSession, session_id)
     if not chat_session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
     if chat_session.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
 
     is_first_message = not session.exec(
         select(ChatMessage).where(ChatMessage.session_id == session_id).limit(1)
@@ -131,9 +139,13 @@ def get_messages(
 ):
     chat_session = session.get(ChatSession, session_id)
     if not chat_session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
     if chat_session.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
 
     messages = session.exec(
         select(ChatMessage).where(ChatMessage.session_id == session_id)

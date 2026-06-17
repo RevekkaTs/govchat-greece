@@ -1,11 +1,15 @@
 import json
 import os
+from typing import Any
+
 from openai import OpenAI
-from app.ai.tools import road_safety_tool, fires_tool, energy_tool
+from openai.types.chat import ChatCompletionToolParam
+
+from app.ai.tools import energy_tool, fires_tool, road_safety_tool
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-TOOLS = [
+TOOLS: list[ChatCompletionToolParam] = [
     {
         "type": "function",
         "function": {
@@ -16,12 +20,12 @@ TOOLS = [
                 "properties": {
                     "year": {
                         "type": "integer",
-                        "description": "Filter by year (optional)"
+                        "description": "Filter by year (optional)",
                     }
                 },
-                "required": []
-            }
-        }
+                "required": [],
+            },
+        },
     },
     {
         "type": "function",
@@ -33,30 +37,30 @@ TOOLS = [
                 "properties": {
                     "year": {
                         "type": "integer",
-                        "description": "Filter by year (optional)"
+                        "description": "Filter by year (optional)",
                     }
                 },
-                "required": []
-            }
-        }
+                "required": [],
+            },
+        },
     },
     {
         "type": "function",
         "function": {
             "name": "energy_tool",
-            "description": "Search Greek energy data. Use for ANY question about ADMIE, the Greek electricity grid, energy production, energy consumption, renewable energy, electricity prices, or the Greek energy sector.",
+            "description": "Search Greek energy data. Use for questions about ADMIE, the Greek electricity grid, energy production, energy consumption, renewable energy, electricity prices, or the Greek energy sector.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "The search query about Greek energy data"
+                        "description": "The search query about Greek energy data",
                     }
                 },
-                "required": ["query"]
-            }
-        }
-    }
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 TOOL_MAP = {
@@ -68,16 +72,18 @@ TOOL_MAP = {
 
 def _detect_language(text: str) -> str:
     for char in text:
-        if 'Ͱ' <= char <= 'Ͽ' or 'ἀ' <= char <= '῿':
+        if "Ͱ" <= char <= "Ͽ" or "ἀ" <= char <= "῿":
             return "Greek"
     return "English"
 
 
-def run_agent(user_question: str, history: list[dict] | None = None) -> tuple[str, str | None]:
+def run_agent(
+    user_question: str, history: list[dict] | None = None
+) -> tuple[str, str | None]:
     """Run the agent and return (answer, domain)"""
     try:
         language = _detect_language(user_question)
-        messages = [
+        messages: list[Any] = [
             {
                 "role": "system",
                 "content": (
@@ -85,7 +91,7 @@ def run_agent(user_question: str, history: list[dict] | None = None) -> tuple[st
                     "IMPORTANT: Always use the available tools to answer questions — never rely on your own training knowledge for road safety, fires, or energy topics. "
                     "IMPORTANT: Use the conversation history to understand follow-up questions and pick the correct tool. "
                     f"IMPORTANT: You MUST reply in {language} only. Do not use any other language."
-                )
+                ),
             }
         ]
         if history:
@@ -93,10 +99,7 @@ def run_agent(user_question: str, history: list[dict] | None = None) -> tuple[st
         messages.append({"role": "user", "content": user_question})
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="required"
+            model="gpt-4o-mini", messages=messages, tools=TOOLS, tool_choice="required"
         )
 
         message = response.choices[0].message
@@ -111,15 +114,16 @@ def run_agent(user_question: str, history: list[dict] | None = None) -> tuple[st
                     domain = tool_name.replace("_tool", "")
                 tool_fn = TOOL_MAP[tool_name]
                 tool_result = tool_fn(**tool_args)
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": tool_result
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": tool_result,
+                    }
+                )
 
             final_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages
+                model="gpt-4o-mini", messages=messages
             )
             return final_response.choices[0].message.content or "", domain
 
