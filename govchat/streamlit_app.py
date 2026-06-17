@@ -55,7 +55,9 @@ def api_get_sessions(token: str):
             f"{API_URL}/chat/sessions",
             headers={"Authorization": f"Bearer {token}"},
         )
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        return []
     except Exception:
         return []
 
@@ -66,7 +68,9 @@ def api_get_messages(token: str, session_id: int):
             f"{API_URL}/chat/sessions/{session_id}/messages",
             headers={"Authorization": f"Bearer {token}"},
         )
-        return r.json()
+        if r.status_code == 200:
+            return r.json()
+        return []
     except Exception:
         return []
 
@@ -115,10 +119,11 @@ if not st.session_state.token:
                 result = api_create_session(st.session_state.token)
                 if result:
                     st.session_state.session_id = result["id"]
+                    st.session_state.messages = []
+                    st.rerun()
                 else:
+                    st.session_state.token = None
                     st.error("Αδυναμία δημιουργίας συνομιλίας.")
-                st.session_state.messages = []
-                st.rerun()
             else:
                 st.error("Λάθος όνομα χρήστη ή κωδικός.")
 
@@ -218,6 +223,9 @@ if prompt := st.chat_input("Κάντε μια ερώτηση..."):
         result = api_create_session(st.session_state.token)
         if result:
             st.session_state.session_id = result["id"]
+        else:
+            st.error("Αδυναμία δημιουργίας συνομιλίας.")
+            st.stop()
     show_user_message(prompt)
 
     col2, _ = st.columns([3, 1])
