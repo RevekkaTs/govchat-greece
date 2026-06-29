@@ -407,7 +407,16 @@ curl "http://localhost:8000/query?q=Πόσα+εκτάρια+κάηκαν+το+20
 
 ## 11. Screenshots
 
-*(Προσθέστε screenshots εδώ — οθόνη σύνδεσης, κύρια οθόνη συνομιλίας, Swagger UI, δείγματα ερωτήσεων/απαντήσεων για κάθε θεματική)*
+### Οθόνη Σύνδεσης
+![Login](screenshots/login.png)
+
+### Κύρια Οθόνη
+![Main Screen 1](screenshots/main-screen-1.png)
+
+![Main Screen 2](screenshots/main-screen-2.png)
+
+### Παράδειγμα Συνομιλίας
+![Chat Window](screenshots/chat-window.png)
 
 ---
 
