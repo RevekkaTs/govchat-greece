@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -6,6 +8,7 @@ from app.ai.agent import run_agent
 from app.db import get_session
 from app.dependencies import get_current_user
 from app.models import ChatMessage, ChatSession, User
+from app.serializers import SessionImport, deserialize_session, serialize_session
 
 
 class CreateSessionRequest(BaseModel):
@@ -82,10 +85,7 @@ def send_message(
     ).first()
 
     recent = session.exec(
-        select(ChatMessage)
-        .where(ChatMessage.session_id == session_id)
-        .order_by(ChatMessage.id.desc())
-        .limit(5)
+        select(ChatMessage).where(ChatMessage.session_id == session_id).limit(5)
     ).all()
     history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
 
@@ -161,3 +161,38 @@ def get_messages(
         }
         for m in messages
     ]
+
+
+@router.get("/sessions/{session_id}/export", status_code=status.HTTP_200_OK)
+def export_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    chat_session = session.get(ChatSession, session_id)
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+    if chat_session.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
+
+    messages = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at)  # type: ignore
+    ).all()
+
+    return serialize_session(chat_session, messages, current_user.username)
+
+
+@router.post("/sessions/import", status_code=status.HTTP_201_CREATED)
+def import_session(
+    body: SessionImport,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    chat_session = deserialize_session(body, cast(int, current_user.id), session)
+    return chat_session
