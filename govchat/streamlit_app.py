@@ -29,7 +29,8 @@ st.markdown(
 def api_login(username: str, password: str):
     try:
         return requests.post(
-            f"{API_URL}/auth/login", data={"username": username, "password": password}
+            f"{API_URL}/v1/auth/login",
+            data={"username": username, "password": password},
         )
     except Exception:
         return None
@@ -38,7 +39,7 @@ def api_login(username: str, password: str):
 def api_create_session(token: str, title: str = "Νέα συνομιλία"):
     try:
         r = requests.post(
-            f"{API_URL}/chat/sessions",
+            f"{API_URL}/v1/chat/sessions",
             headers={"Authorization": f"Bearer {token}"},
             json={"title": title},
         )
@@ -52,7 +53,7 @@ def api_create_session(token: str, title: str = "Νέα συνομιλία"):
 def api_get_sessions(token: str):
     try:
         r = requests.get(
-            f"{API_URL}/chat/sessions",
+            f"{API_URL}/v1/chat/sessions",
             headers={"Authorization": f"Bearer {token}"},
         )
         if r.status_code == 200:
@@ -65,7 +66,7 @@ def api_get_sessions(token: str):
 def api_get_messages(token: str, session_id: int):
     try:
         r = requests.get(
-            f"{API_URL}/chat/sessions/{session_id}/messages",
+            f"{API_URL}/v1/chat/sessions/{session_id}/messages",
             headers={"Authorization": f"Bearer {token}"},
         )
         if r.status_code == 200:
@@ -78,7 +79,7 @@ def api_get_messages(token: str, session_id: int):
 def api_send_message(token: str, session_id: int, content: str):
     try:
         r = requests.post(
-            f"{API_URL}/chat/sessions/{session_id}/messages",
+            f"{API_URL}/v1/chat/sessions/{session_id}/messages",
             headers={"Authorization": f"Bearer {token}"},
             json={"content": content},
             timeout=60,

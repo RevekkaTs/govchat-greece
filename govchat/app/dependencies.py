@@ -5,9 +5,9 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import User
-from app.security import SECRET_KEY, ALGORITHM
+from app.security import ALGORITHM, SECRET_KEY
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
 
 def get_current_user(

@@ -8,6 +8,12 @@ from app.ai.agent import run_agent
 from app.db import get_session
 from app.dependencies import get_current_user
 from app.models import ChatMessage, ChatSession, User
+from app.schemas import (
+    MessageResponse,
+    SendMessageResponse,
+    SessionExportResponse,
+    SessionResponse,
+)
 from app.serializers import SessionImport, deserialize_session, serialize_session
 
 
@@ -22,7 +28,12 @@ class CreateMessageRequest(BaseModel):
 router = APIRouter()
 
 
-@router.post("/sessions", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/sessions",
+    summary="Create a new chat session",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SessionResponse,
+)
 def create_session(
     body: CreateSessionRequest,
     current_user: User = Depends(get_current_user),
@@ -36,15 +47,20 @@ def create_session(
     session.add(chat_session)
     session.commit()
     session.refresh(chat_session)
-    return {
-        "id": chat_session.id,
-        "user_id": chat_session.user_id,
-        "title": chat_session.title,
-        "created_at": chat_session.created_at,
-    }
+    return SessionResponse(
+        id=chat_session.id,
+        user_id=chat_session.user_id,
+        title=chat_session.title,
+        created_at=chat_session.created_at,
+    )
 
 
-@router.get("/sessions", status_code=status.HTTP_200_OK)
+@router.get(
+    "/sessions",
+    summary="List all chat sessions for the current user",
+    status_code=status.HTTP_200_OK,
+    response_model=list[SessionResponse],
+)
 def list_sessions(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -53,17 +69,22 @@ def list_sessions(
         select(ChatSession).where(ChatSession.user_id == current_user.id)
     ).all()
     return [
-        {
-            "id": s.id,
-            "user_id": s.user_id,
-            "title": s.title,
-            "created_at": s.created_at,
-        }
+        SessionResponse(
+            id=s.id,
+            user_id=s.user_id,
+            title=s.title,
+            created_at=s.created_at,
+        )
         for s in sessions
     ]
 
 
-@router.post("/sessions/{session_id}/messages", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/sessions/{session_id}/messages",
+    summary="Send a message in a chat session",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SendMessageResponse,
+)
 def send_message(
     session_id: int,
     body: CreateMessageRequest,
@@ -131,7 +152,12 @@ def send_message(
     }
 
 
-@router.get("/sessions/{session_id}/messages", status_code=status.HTTP_200_OK)
+@router.get(
+    "/sessions/{session_id}/messages",
+    summary="Get all messages in a chat session",
+    status_code=status.HTTP_200_OK,
+    response_model=list[MessageResponse],
+)
 def get_messages(
     session_id: int,
     current_user: User = Depends(get_current_user),
@@ -151,19 +177,24 @@ def get_messages(
         select(ChatMessage).where(ChatMessage.session_id == session_id)
     ).all()
     return [
-        {
-            "id": m.id,
-            "session_id": m.session_id,
-            "role": m.role,
-            "content": m.content,
-            "domain": m.domain,
-            "created_at": m.created_at,
-        }
+        MessageResponse(
+            id=m.id,
+            session_id=m.session_id,
+            role=m.role,
+            content=m.content,
+            domain=m.domain,
+            created_at=m.created_at,
+        )
         for m in messages
     ]
 
 
-@router.get("/sessions/{session_id}/export", status_code=status.HTTP_200_OK)
+@router.get(
+    "/sessions/{session_id}/export",
+    summary="Export a chat session",
+    status_code=status.HTTP_200_OK,
+    response_model=SessionExportResponse,
+)
 def export_session(
     session_id: int,
     current_user: User = Depends(get_current_user),
@@ -188,11 +219,21 @@ def export_session(
     return serialize_session(chat_session, messages, current_user.username)
 
 
-@router.post("/sessions/import", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/sessions/import",
+    summary="Import a chat session",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SessionResponse,
+)
 def import_session(
     body: SessionImport,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     chat_session = deserialize_session(body, cast(int, current_user.id), session)
-    return chat_session
+    return SessionResponse(
+        id=chat_session.id,
+        user_id=chat_session.user_id,
+        title=chat_session.title,
+        created_at=chat_session.created_at,
+    )
