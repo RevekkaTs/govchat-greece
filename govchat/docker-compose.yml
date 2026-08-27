@@ -7,6 +7,9 @@ services:
     env_file: .env
     volumes:
     - chroma_db:/app/data/chroma_db
+    - sqlite_data:/app/sqlite_data
+    environment:
+      - DATABASE_URL=sqlite:///./sqlite_data/govchat.db
 
   frontend:
     build: .
@@ -21,4 +24,6 @@ services:
 
 volumes:
   chroma_db:
+    driver: local
+  sqlite_data:
     driver: local
