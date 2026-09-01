@@ -182,19 +182,23 @@ PREFECTURE_COLUMN = 5
 AREA_COLUMNS = list(range(14, 22))  # 8 burned-area columns, in stremmata
 FIRST_DATA_ROW = 2
 
-# Confirmed header row (row index 1) — identical across all four target years.
-# Only columns 5 and 14-21 are actually used; the rest are here so a layout
-# change in the source file is caught instead of silently misparsed.
-EXPECTED_HEADERS = [
-    "Α/Α ΕΓΓΡΑΦΗΣ", "Α/Α ENGAGE", "X-ENGAGE", "Y-ENGAGE", "Υπηρεσία",
-    "Νομός", "Ημερ/νία Έναρξης", "Ώρα Έναρξης", "Ημερ/νία Κατασβεσης",
-    "Ώρα Κατάσβεσης", "Δασαρχείο", "Δήμος", "Περιοχή", "Διεύθυνση",
-    "Δάση", "Δασική Έκταση", "Άλση", "Χορτ/κές Εκτάσεις",
-    "Καλάμια - Βάλτοι", "Γεωργικές Εκτάσεις", "Υπολλείματα Καλλιεργειών",
-    "Σκουπι-δότοποι", "ΠΥΡΟΣ. ΣΩΜΑ", "ΠΕΖΟΠΟΡΑ ΤΜΗΜΑΤΑ", "ΕΘΕΛΟ-ΝΤΕΣ",
-    "ΣΤΡΑΤΟΣ", "ΑΛΛΕΣ ΔΥΝΑΜΕΙΣ", "ΠΥΡΟΣ. ΟΧΗΜ.", "ΟΧΗΜ. ΥΠΗΡΕΣΙΑΚΑ",
-    "ΒΥΤΙΟ- ΦΟΡΑ", "ΜΗΧΑΝΗ-ΜΑΤΑ", "ΕΛΙΚΟ- ΠΤΕΡΑ", "Α/Φ CL415",
-    "Α/Φ CL215", "Α/Φ PZL", "Α/Φ GRU.", "ΜΙΣΘ. ΕΛΙΚΟΠΤ.", "ΜΙΣΘ. ΑΕΡΟΣΚ.",
+# Only columns 5 (prefecture) and 14-21 (burned-area) are actually used.
+# Validated against the real 2021-2024 files: total column count is stable
+# at 38, and these two labels are stable across all four years — but
+# column 28 ("service vehicles" vs "local authority vehicles") is worded
+# differently in 2021 vs 2022-2024, which is why the full header isn't
+# checked verbatim.
+EXPECTED_COLUMN_COUNT = 38
+PREFECTURE_HEADER = "Νομός"
+AREA_HEADERS = [
+    "Δάση",
+    "Δασική Έκταση",
+    "Άλση",
+    "Χορτ/κές Εκτάσεις",
+    "Καλάμια - Βάλτοι",
+    "Γεωργικές Εκτάσεις",
+    "Υπολλείματα Καλλιεργειών",
+    "Σκουπι-δότοποι",
 ]
 
 
@@ -218,12 +222,24 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
     workbook = xlrd.open_workbook(file_contents=response.content)
     sheet = workbook.sheet_by_index(0)
 
-    actual_headers = [str(sheet.cell_value(1, c)) for c in range(sheet.ncols)]
-    if actual_headers != EXPECTED_HEADERS:
+    if sheet.ncols != EXPECTED_COLUMN_COUNT:
         raise RuntimeError(
-            f"Fire data XLS for {year} has an unexpected column layout "
-            f"(expected {len(EXPECTED_HEADERS)} columns matching the "
-            f"2021-2024 schema). Got: {actual_headers}"
+            f"Fire data XLS for {year} has {sheet.ncols} columns, "
+            f"expected {EXPECTED_COLUMN_COUNT}"
+        )
+
+    actual_prefecture_header = str(sheet.cell_value(1, PREFECTURE_COLUMN))
+    if actual_prefecture_header != PREFECTURE_HEADER:
+        raise RuntimeError(
+            f"Fire data XLS for {year}: column {PREFECTURE_COLUMN} is "
+            f"{actual_prefecture_header!r}, expected {PREFECTURE_HEADER!r}"
+        )
+
+    actual_area_headers = [str(sheet.cell_value(1, c)) for c in AREA_COLUMNS]
+    if actual_area_headers != AREA_HEADERS:
+        raise RuntimeError(
+            f"Fire data XLS for {year} has unexpected area columns: "
+            f"{actual_area_headers}"
         )
 
     rows = []

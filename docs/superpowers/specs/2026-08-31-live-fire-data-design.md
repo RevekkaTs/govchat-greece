@@ -82,14 +82,14 @@ seven available years (2019-2025) directly showed real layout drift:
 |---|---|---|---|
 | 2019 | 32 | row 1 | No leading ID columns, no "leased aircraft" columns |
 | 2020 | 36 | row 1 | +4 leading ID columns vs 2019, still no "leased" columns |
-| **2021** | **38** | **row 1** | **+2 trailing "leased" columns vs 2020 — this layout is identical across 2021-2024** |
-| **2022** | **38** | **row 1** | Identical header row to 2021 |
-| **2023** | **38** | **row 1** | Identical header row to 2021 |
-| **2024** | **38** | **row 1** | Identical header row to 2021 |
+| **2021** | **38** | **row 1** | **+2 trailing "leased" columns vs 2020 — same column count and positions as 2022-2024, but see note below** |
+| **2022** | **38** | **row 1** | Same shape as 2021 |
+| **2023** | **38** | **row 1** | Same shape as 2021 |
+| **2024** | **38** | **row 1** | Same shape as 2021 |
 | 2025 | 39 | **row 3** (not row 1) | Extra title row shifts everything down; adds a "Κατηγορία Συμβάντος" column; dates stored as `"DD/MM/YYYY"` text instead of Excel serial numbers; drops the "Α/Φ GRU." column present in every other year |
 
-2021-2024 is the one contiguous range with a **verified, byte-identical
-header layout** across all four files — confirmed by downloading and
+2021-2024 is the one contiguous range with a **verified-matching column
+count and layout** across all four files — confirmed by downloading and
 diffing all four, not inferred. It also happens to exactly match the year
 range of the hardcoded docs being replaced. 2019, 2020, and 2025 are
 explicitly **out of scope**: including them would require either a second
@@ -99,10 +99,20 @@ can extend coverage once those layouts are individually confirmed the same
 way — this design does not attempt to auto-detect or best-effort them; an
 unrecognized year is simply not fetched.
 
+**Correction (found during implementation, not during spec-writing):** the
+2021-2024 headers are not byte-identical after all — column 28 is labeled
+`"ΟΧΗΜ. ΟΤΑ"` in 2021 but `"ΟΧΗΜ. ΥΠΗΡΕΣΙΑΚΑ"` in 2022-2024 (both mean
+"local authority / service vehicles" — almost certainly the same concept,
+relabeled at some point). This column isn't used by the aggregation at
+all. Rather than hardcode both accepted labels for one irrelevant column,
+the header validation only checks the column count and the labels of the
+columns actually consumed (prefecture + the 8 area columns) — see
+"Confirmed columns" below.
+
 ## Confirmed columns (2021-2024 layout)
 
-Full confirmed header row (0-indexed), for the schema-validation check
-(see Error handling):
+Full header row as seen in 2022-2024 (0-indexed; 2021 is identical except
+column 28, see the correction above):
 
 ```
 0  Α/Α ΕΓΓΡΑΦΗΣ          10 Δασαρχείο              20 Υπολλείματα Καλλιεργειών   30 ΜΗΧΑΝΗ-ΜΑΤΑ
@@ -113,7 +123,7 @@ Full confirmed header row (0-indexed), for the schema-validation check
 5  Νομός                 15 Δασική Έκταση          25 ΣΤΡΑΤΟΣ                     35 Α/Φ GRU.
 6  Ημερ/νία Έναρξης      16 Άλση                   26 ΑΛΛΕΣ ΔΥΝΑΜΕΙΣ              36 ΜΙΣΘ. ΕΛΙΚΟΠΤ.
 7  Ώρα Έναρξης           17 Χορτ/κές Εκτάσεις       27 ΠΥΡΟΣ. ΟΧΗΜ.                37 ΜΙΣΘ. ΑΕΡΟΣΚ.
-8  Ημερ/νία Κατασβεσης   18 Καλάμια - Βάλτοι        28 ΟΧΗΜ. ΥΠΗΡΕΣΙΑΚΑ
+8  Ημερ/νία Κατασβεσης   18 Καλάμια - Βάλτοι        28 ΟΧΗΜ. ΥΠΗΡΕΣΙΑΚΑ (2021: ΟΧΗΜ. ΟΤΑ)
 9  Ώρα Κατάσβεσης        19 Γεωργικές Εκτάσεις      29 ΒΥΤΙΟ- ΦΟΡΑ
 ```
 
@@ -125,7 +135,11 @@ Only two columns are actually used for aggregation:
   ground) — summed per row into one stremmata-burned figure per incident.
 
 Data rows start at sheet row index 2 (row 0 is a merged group-header row,
-row 1 is the real header row, confirmed identical across 2021-2024).
+row 1 is the real header row). **Schema validation checks only what's
+consumed** — total column count (38) plus the labels of column 5 and
+columns 14-21 — not every column's exact text, since column 28's label
+is known to vary between 2021 and 2022-2024 without affecting anything
+this script reads.
 
 **Units:** the group header reads `"ΚΑΜΜΕΝΗ ΕΚΤΑΣΗ (Σε Στρέμματα)"` — burned
 area in **στρέμματα (stremmata)**. This design keeps the figures in
