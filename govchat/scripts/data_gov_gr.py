@@ -6,7 +6,14 @@ def fetch_package_resources(package_id: str) -> list[dict]:
     url = f"https://data.gov.gr/api/3/action/package_show?id={package_id}"
     response = requests.get(url, timeout=30)
     response.raise_for_status()
-    return response.json()["result"]["resources"]
+    payload = response.json()
+    if not payload.get("success"):
+        error = payload.get("error") or {}
+        raise RuntimeError(
+            f"CKAN request for package {package_id!r} failed: "
+            f"{error.get('message') or error or 'unknown error'}"
+        )
+    return payload["result"]["resources"]
 
 
 def find_resource_for_year(

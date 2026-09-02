@@ -59,14 +59,16 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
             f"expected {EXPECTED_COLUMN_COUNT}"
         )
 
-    actual_prefecture_header = str(sheet.cell_value(1, PREFECTURE_COLUMN))
+    actual_prefecture_header = str(sheet.cell_value(1, PREFECTURE_COLUMN)).strip()
     if actual_prefecture_header != PREFECTURE_HEADER:
         raise RuntimeError(
             f"Fire data XLS for {year}: column {PREFECTURE_COLUMN} is "
             f"{actual_prefecture_header!r}, expected {PREFECTURE_HEADER!r}"
         )
 
-    actual_area_headers = [str(sheet.cell_value(1, c)) for c in AREA_COLUMNS]
+    actual_area_headers = [
+        str(sheet.cell_value(1, c)).strip() for c in AREA_COLUMNS
+    ]
     if actual_area_headers != AREA_HEADERS:
         raise RuntimeError(
             f"Fire data XLS for {year} has unexpected area columns: "
@@ -82,7 +84,14 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
             if isinstance(value, (int, float)):
                 stremmata += value
             elif isinstance(value, str) and value.strip():
-                stremmata += float(value.strip())
+                try:
+                    stremmata += float(value.strip())
+                except ValueError as exc:
+                    raise RuntimeError(
+                        f"Fire data XLS for {year}: cell at row {r}, "
+                        f"column {c} has non-numeric burned-area value "
+                        f"{value!r}"
+                    ) from exc
         rows.append({"prefecture": prefecture, "stremmata_burned": stremmata})
 
     return rows
