@@ -7,8 +7,21 @@ load_dotenv(override=True)
 
 CHROMA_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "chroma_db")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
 chroma_client = chromadb.PersistentClient(path=os.path.abspath(CHROMA_PATH))
+
+
+def _get_client() -> OpenAI:
+    global client
+    if client is None:
+        api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "Missing OpenAI API key. Set OPENAI_API_KEY or OPENAI_ADMIN_KEY before using AI features."
+            )
+        client = OpenAI(api_key=api_key)
+    return client
 
 
 def get_collection():
@@ -24,7 +37,7 @@ def get_fire_collection():
 
 
 def embed_text(text: str) -> list[float]:
-    response = client.embeddings.create(
+    response = _get_client().embeddings.create(
         model="text-embedding-3-small",
         input=text
     )

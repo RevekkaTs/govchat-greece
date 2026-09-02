@@ -7,7 +7,20 @@ from openai.types.chat import ChatCompletionToolParam
 
 from app.ai.tools import energy_tool, fires_tool, road_safety_tool
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
+client = OpenAI(api_key=api_key) if api_key else None
+
+
+def _get_client() -> OpenAI:
+    global client
+    if client is None:
+        api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "Missing OpenAI API key. Set OPENAI_API_KEY or OPENAI_ADMIN_KEY before using AI features."
+            )
+        client = OpenAI(api_key=api_key)
+    return client
 
 TOOLS: list[ChatCompletionToolParam] = [
     {
@@ -98,7 +111,7 @@ def run_agent(
             messages.extend(history)
         messages.append({"role": "user", "content": user_question})
 
-        response = client.chat.completions.create(
+        response = _get_client().chat.completions.create(
             model="gpt-4o-mini", messages=messages, tools=TOOLS, tool_choice="required"
         )
 
@@ -122,7 +135,7 @@ def run_agent(
                     }
                 )
 
-            final_response = client.chat.completions.create(
+            final_response = _get_client().chat.completions.create(
                 model="gpt-4o-mini", messages=messages
             )
             return final_response.choices[0].message.content or "", domain
