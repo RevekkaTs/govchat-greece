@@ -10,14 +10,16 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 from app.ai.rag import embed_text, get_fire_collection
+from scripts.data_gov_gr import (
+    fetch_package_resources,
+    find_resource_for_year,
+    replace_collection_documents,
+)
 from scripts.fire_data_aggregation import aggregate_year
 
 # Data pulled live from data.gov.gr (ΑΡΧΕΙΟ ΑΓΡΟΤΟΔΑΣΙΚΩΝ ΣΥΜΒΑΝΤΩΝ)
 # Source: Υπουργείο Κλιματικής Κρίσης και Πολιτικής Προστασίας
-# Package: archeio-agrotodasikon-symvanton (id 55d3451c-94cb-4577-8cb6-34d3e89a4299)
-CKAN_PACKAGE_URL = (
-    "https://data.gov.gr/api/3/action/package_show?id=archeio-agrotodasikon-symvanton"
-)
+PACKAGE_ID = "archeio-agrotodasikon-symvanton"  # id 55d3451c-94cb-4577-8cb6-34d3e89a4299
 TARGET_YEARS = [2021, 2022, 2023, 2024]
 
 PREFECTURE_COLUMN = 5
@@ -42,20 +44,6 @@ AREA_HEADERS = [
     "Υπολλείματα Καλλιεργειών",
     "Σκουπι-δότοποι",
 ]
-
-
-def find_resource_for_year(resources: list[dict], year: int) -> dict:
-    matches = [
-        r
-        for r in resources
-        if r.get("format") == "XLS" and str(year) in (r.get("name") or "").split()
-    ]
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"Expected exactly one XLS resource for {year} in the "
-            f"archeio-agrotodasikon-symvanton package, found {len(matches)}"
-        )
-    return matches[0]
 
 
 def fetch_year_rows(resource: dict, year: int) -> list[dict]:
@@ -102,13 +90,11 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
 
 def fetch_all_aggregates() -> list:
     print("Fetching fire dataset metadata from data.gov.gr...")
-    response = requests.get(CKAN_PACKAGE_URL, timeout=30)
-    response.raise_for_status()
-    resources = response.json()["result"]["resources"]
+    resources = fetch_package_resources(PACKAGE_ID)
 
     aggregates = []
     for year in TARGET_YEARS:
-        resource = find_resource_for_year(resources, year)
+        resource = find_resource_for_year(resources, year, format="XLS")
         print(f"Downloading {year} data...")
         rows = fetch_year_rows(resource, year)
         aggregate = aggregate_year(year, rows)
@@ -142,20 +128,8 @@ def seed():
         for aggregate in aggregates
     ]
 
-    print("Embedding new documents...")
-    embedded = [(doc["id"], doc["text"], embed_text(doc["text"])) for doc in documents]
-
     collection = get_fire_collection()
-    existing_ids = collection.get()["ids"]
-    if existing_ids:
-        collection.delete(ids=existing_ids)
-        print(f"Removed {len(existing_ids)} existing documents.")
-
-    for doc_id, text, embedding in embedded:
-        collection.add(ids=[doc_id], embeddings=[embedding], documents=[text])
-        print(f"  Added: {doc_id}")
-
-    print(f"Done! Collection now has {collection.count()} documents.")
+    replace_collection_documents(collection, documents, embed_text)
 
 
 if __name__ == "__main__":
