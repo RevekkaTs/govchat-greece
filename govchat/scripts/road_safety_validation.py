@@ -1,8 +1,12 @@
+"""Data shape for one year's road-safety stats, plus a sanity check that the accident/casualty breakdowns add up to the reported totals."""
+
 from dataclasses import dataclass
 
 
 @dataclass
 class RoadSafetyYearStats:
+    """One year's road-safety totals: accidents broken down by severity, and casualties broken down by severity."""
+
     year: int
     fatal_accidents: int
     serious_accidents: int
@@ -15,6 +19,7 @@ class RoadSafetyYearStats:
 
 
 def validate_year_stats(stats: RoadSafetyYearStats) -> None:
+    """Raise ValueError if the accident or casualty breakdowns don't sum to the reported totals for that year."""
     accident_sum = (
         stats.fatal_accidents + stats.serious_accidents + stats.minor_accidents
     )

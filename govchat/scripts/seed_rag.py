@@ -1,3 +1,5 @@
+"""One-off script: seeds the energy_data ChromaDB collection with a fixed set of hand-written Greek paragraphs about ADMIE and the energy sector (no live data)."""
+
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -52,6 +54,7 @@ ENERGY_DOCUMENTS = [
 
 
 def seed():
+    """Embed and store the hand-written energy paragraphs into ChromaDB, skipping if the collection is already populated."""
     collection = get_collection()
 
     existing = collection.count()

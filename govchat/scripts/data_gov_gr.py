@@ -1,3 +1,5 @@
+"""Shared helpers for pulling datasets from the data.gov.gr open-data API and safely refreshing a ChromaDB collection with new documents."""
+
 import requests
 
 

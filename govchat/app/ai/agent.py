@@ -1,3 +1,5 @@
+"""The AI orchestrator: sends the user's question to the LLM with the three data tools available, runs whichever tool(s) it picks, and asks the LLM to compose the final answer."""
+
 import json
 import os
 from typing import Any
@@ -12,6 +14,7 @@ client = OpenAI(api_key=api_key) if api_key else None
 
 
 def _get_client() -> OpenAI:
+    """Lazily create the OpenAI client on first use, so importing this module doesn't require an API key to already be set."""
     global client
     if client is None:
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
@@ -21,6 +24,7 @@ def _get_client() -> OpenAI:
             )
         client = OpenAI(api_key=api_key)
     return client
+
 
 TOOLS: list[ChatCompletionToolParam] = [
     {
@@ -83,11 +87,23 @@ TOOL_MAP = {
 }
 
 
+_GREEK_RATIO_THRESHOLD = 0.3
+
+
 def _detect_language(text: str) -> str:
+    """Determine "Greek" or "English" from the share of Greek-alphabet characters among all letters in the text."""
+    greek_letters = 0
+    total_letters = 0
     for char in text:
-        if "Ͱ" <= char <= "Ͽ" or "ἀ" <= char <= "῿":
-            return "Greek"
-    return "English"
+        if char.isalpha():
+            total_letters += 1
+            if "Ά" <= char <= "ώ":
+                greek_letters += 1
+    if total_letters == 0:
+        return "English"
+    return (
+        "Greek" if greek_letters / total_letters > _GREEK_RATIO_THRESHOLD else "English"
+    )
 
 
 def run_agent(
@@ -142,4 +158,4 @@ def run_agent(
 
         return message.content or "", domain
     except Exception as e:
-        return f"Sorry, I encountered an error processing your question: {str(e)}", None
+        return f"Sorry, I encountered an error processing your question: {e!s}", None

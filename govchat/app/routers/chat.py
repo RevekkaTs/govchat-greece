@@ -1,3 +1,5 @@
+"""Chat endpoints: create/list chat sessions and send/read messages, handing each user message to the AI agent for a reply."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -9,10 +11,14 @@ from app.models import ChatMessage, ChatSession, User
 
 
 class CreateSessionRequest(BaseModel):
+    """Request body for POST /chat/sessions."""
+
     title: str
 
 
 class CreateMessageRequest(BaseModel):
+    """Request body for POST /chat/sessions/{id}/messages."""
+
     content: str
 
 
@@ -25,6 +31,7 @@ def create_session(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
+    """Create a new, empty chat session for the current user."""
     if current_user.id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user"
@@ -46,6 +53,7 @@ def list_sessions(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
+    """List all chat sessions belonging to the current user."""
     sessions = session.exec(
         select(ChatSession).where(ChatSession.user_id == current_user.id)
     ).all()
@@ -67,6 +75,7 @@ def send_message(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
+    """Save the user's message, run it through the AI agent, save the reply, and return both messages."""
     chat_session = session.get(ChatSession, session_id)
     if not chat_session:
         raise HTTPException(
@@ -116,6 +125,7 @@ def send_message(
     session.refresh(assistant_message)
 
     def msg_dict(msg: ChatMessage):
+        """Convert a ChatMessage row into the plain dict shape returned to the client."""
         return {
             "id": msg.id,
             "session_id": msg.session_id,
@@ -137,6 +147,7 @@ def get_messages(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
+    """Return every message in a chat session the current user owns."""
     chat_session = session.get(ChatSession, session_id)
     if not chat_session:
         raise HTTPException(

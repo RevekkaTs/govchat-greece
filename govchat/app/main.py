@@ -1,3 +1,5 @@
+"""FastAPI app entrypoint: creates the database on startup and wires up the auth, chat, and query routers."""
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.db import create_db
@@ -6,6 +8,7 @@ from app.routers import auth, chat, query
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Create the SQLite tables on startup, then hand control back to FastAPI."""
     create_db()
     yield
 

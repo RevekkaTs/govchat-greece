@@ -1,3 +1,5 @@
+"""Embeds text with OpenAI and runs similarity search against the three ChromaDB collections (energy, road safety, fires)."""
+
 import os
 import chromadb
 from openai import OpenAI
@@ -13,6 +15,7 @@ chroma_client = chromadb.PersistentClient(path=os.path.abspath(CHROMA_PATH))
 
 
 def _get_client() -> OpenAI:
+    """Lazily create the OpenAI client on first use, so importing this module doesn't require an API key to already be set."""
     global client
     if client is None:
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_ADMIN_KEY")
@@ -25,18 +28,22 @@ def _get_client() -> OpenAI:
 
 
 def get_collection():
+    """Get (or create) the ChromaDB collection holding the energy data."""
     return chroma_client.get_or_create_collection(name="energy_data")
 
 
 def get_road_safety_collection():
+    """Get (or create) the ChromaDB collection holding the road safety data."""
     return chroma_client.get_or_create_collection(name="road_safety_data")
 
 
 def get_fire_collection():
+    """Get (or create) the ChromaDB collection holding the fire data."""
     return chroma_client.get_or_create_collection(name="fire_data")
 
 
 def embed_text(text: str) -> list[float]:
+    """Turn text into an embedding vector using OpenAI's text-embedding-3-small model."""
     response = _get_client().embeddings.create(
         model="text-embedding-3-small",
         input=text
@@ -45,6 +52,7 @@ def embed_text(text: str) -> list[float]:
 
 
 def search(query: str, n_results: int = 3) -> str:
+    """Embed the query and return the top matching energy_data documents, joined into one string."""
     collection = get_collection()
     query_embedding = embed_text(query)
     results = collection.query(
@@ -59,6 +67,7 @@ def search(query: str, n_results: int = 3) -> str:
 
 
 def search_road_safety(query: str, n_results: int = 3) -> str:
+    """Embed the query and return the top matching road_safety_data documents, joined into one string."""
     collection = get_road_safety_collection()
     query_embedding = embed_text(query)
     results = collection.query(
@@ -73,6 +82,7 @@ def search_road_safety(query: str, n_results: int = 3) -> str:
 
 
 def search_fires(query: str, n_results: int = 3) -> str:
+    """Embed the query and return the top matching fire_data documents, joined into one string."""
     collection = get_fire_collection()
     query_embedding = embed_text(query)
     results = collection.query(

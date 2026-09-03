@@ -1,3 +1,5 @@
+"""The browser chat UI (Streamlit): login screen, sidebar session list, and the chat window — talks to the FastAPI backend only over HTTP."""
+
 import requests
 import streamlit as st
 
@@ -27,6 +29,7 @@ st.markdown(
 
 
 def api_login(username: str, password: str):
+    """Call the backend's login endpoint; returns None if the request itself fails (e.g. server not running)."""
     try:
         return requests.post(
             f"{API_URL}/auth/login", data={"username": username, "password": password}
@@ -36,6 +39,7 @@ def api_login(username: str, password: str):
 
 
 def api_create_session(token: str, title: str = "Νέα συνομιλία"):
+    """Create a new chat session via the backend; returns None on any failure."""
     try:
         r = requests.post(
             f"{API_URL}/chat/sessions",
@@ -50,6 +54,7 @@ def api_create_session(token: str, title: str = "Νέα συνομιλία"):
 
 
 def api_get_sessions(token: str):
+    """Fetch the current user's chat sessions from the backend; returns [] on any failure."""
     try:
         r = requests.get(
             f"{API_URL}/chat/sessions",
@@ -63,6 +68,7 @@ def api_get_sessions(token: str):
 
 
 def api_get_messages(token: str, session_id: int):
+    """Fetch all messages in one chat session from the backend; returns [] on any failure."""
     try:
         r = requests.get(
             f"{API_URL}/chat/sessions/{session_id}/messages",
@@ -76,6 +82,7 @@ def api_get_messages(token: str, session_id: int):
 
 
 def api_send_message(token: str, session_id: int, content: str):
+    """Send a user message to the backend and get back the AI's reply; returns a dict with an "error" key instead of raising if something goes wrong."""
     try:
         r = requests.post(
             f"{API_URL}/chat/sessions/{session_id}/messages",
@@ -195,6 +202,7 @@ with st.sidebar:
 
 
 def show_user_message(content: str):
+    """Render one user chat bubble, right-aligned."""
     _, col = st.columns([1, 3])
     with col:
         with st.chat_message("user", avatar="🧑"):
@@ -202,6 +210,7 @@ def show_user_message(content: str):
 
 
 def show_assistant_message(content: str, domain: str | None):
+    """Render one assistant chat bubble, left-aligned, with a small caption naming which data source answered."""
     col, _ = st.columns([3, 1])
     with col:
         with st.chat_message("assistant", avatar="🤖"):

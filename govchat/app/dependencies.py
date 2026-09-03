@@ -1,3 +1,5 @@
+"""FastAPI dependencies that read the bearer token from a request and resolve it to the current (optionally admin) user."""
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -14,6 +16,7 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: Session = Depends(get_session),
 ) -> User:
+    """FastAPI dependency: decode the bearer token and look up the matching User row, raising 401 if it's missing, expired, or invalid."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token",
@@ -34,6 +37,7 @@ def get_current_user(
 
 
 def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    """FastAPI dependency: like get_current_user, but also requires is_admin, raising 403 otherwise."""
     if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

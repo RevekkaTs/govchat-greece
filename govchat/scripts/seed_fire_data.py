@@ -1,3 +1,5 @@
+"""One-off script: downloads live wildfire spreadsheets from data.gov.gr (2021-2024) and refreshes the fire_data ChromaDB collection with per-year summaries."""
+
 import os
 import sys
 
@@ -47,6 +49,7 @@ AREA_HEADERS = [
 
 
 def fetch_year_rows(resource: dict, year: int) -> list[dict]:
+    """Download one year's fire XLS, validate its column layout, and return one row per incident with prefecture + total burned area."""
     response = requests.get(resource["url"], timeout=60)
     response.raise_for_status()
 
@@ -98,6 +101,7 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
 
 
 def fetch_all_aggregates() -> list:
+    """Fetch and aggregate fire data for every year in TARGET_YEARS, printing progress as it goes."""
     print("Fetching fire dataset metadata from data.gov.gr...")
     resources = fetch_package_resources(PACKAGE_ID)
 
@@ -117,6 +121,7 @@ def fetch_all_aggregates() -> list:
 
 
 def render_year_summary(aggregate) -> str:
+    """Turn one year's aggregate into the English paragraph stored in ChromaDB."""
     prefecture_text = ", ".join(
         f"{name} ({count} incidents)" for name, count in aggregate.top_prefectures
     )
@@ -130,6 +135,7 @@ def render_year_summary(aggregate) -> str:
 
 
 def seed():
+    """Fetch, aggregate, and re-embed all years of fire data, replacing whatever was in the fire_data collection before."""
     aggregates = fetch_all_aggregates()
 
     documents = [

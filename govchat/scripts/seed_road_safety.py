@@ -1,3 +1,5 @@
+"""One-off script: downloads live road-accident spreadsheets from data.gov.gr (2018-2025) and refreshes the road_safety_data ChromaDB collection with per-year summaries."""
+
 import os
 import sys
 
@@ -40,6 +42,7 @@ CASUALTIES_HEADER_LABEL = "ΠΑΘΟΝΤΕΣ"
 
 
 def _read_whole_number(sheet, row: int, col: int) -> int:
+    """Read a cell expected to hold a whole number, raising if it's actually a fractional float (guards against silently truncating data)."""
     value = sheet.cell_value(row, col)
     if isinstance(value, float) and not value.is_integer():
         raise RuntimeError(
@@ -49,6 +52,7 @@ def _read_whole_number(sheet, row: int, col: int) -> int:
 
 
 def fetch_year_stats(resource: dict, year: int) -> RoadSafetyYearStats:
+    """Download one year's road-safety XLS, validate its header labels, and return the year's accident/casualty stats."""
     response = requests.get(resource["url"], timeout=60)
     response.raise_for_status()
 
@@ -89,6 +93,7 @@ def fetch_year_stats(resource: dict, year: int) -> RoadSafetyYearStats:
 
 
 def fetch_all_stats() -> list:
+    """Fetch and validate road safety stats for every year in TARGET_YEARS, printing progress as it goes."""
     print("Fetching road safety dataset metadata from data.gov.gr...")
     resources = fetch_package_resources(PACKAGE_ID)
 
@@ -112,6 +117,7 @@ def fetch_all_stats() -> list:
 
 
 def render_year_summary(stats: RoadSafetyYearStats) -> str:
+    """Turn one year's stats into the English paragraph stored in ChromaDB."""
     return (
         f"Road accidents in Greece {stats.year}: "
         f"{stats.fatal_accidents} fatal accidents, "
@@ -126,6 +132,7 @@ def render_year_summary(stats: RoadSafetyYearStats) -> str:
 
 
 def seed():
+    """Fetch and validate all years of road safety data, replacing whatever was in the road_safety_data collection before."""
     all_stats = fetch_all_stats()
 
     documents = [
