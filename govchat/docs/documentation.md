@@ -269,9 +269,9 @@ govchat/
 │   ├── security.py            # bcrypt hashing, JWT creation
 │   └── dependencies.py        # get_current_user(), get_current_admin()
 ├── scripts/
-│   ├── seed_energy_data.py    # Σπορά δεδομένων ενεργειακού ισοζυγίου (4 έγγραφα)
-│   ├── seed_road_safety.py    # Σπορά δεδομένων τροχαίων (5 έγγραφα)
-│   └── seed_fire_data.py      # Σπορά δεδομένων πυρκαγιών (4 έγγραφα)
+│   ├── seed_energy_data.py    # Αρχικοποίηση δεδομένων ενεργειακού ισοζυγίου (4 έγγραφα)
+│   ├── seed_road_safety.py    # Αρχικοποίηση δεδομένων τροχαίων (5 έγγραφα)
+│   └── seed_fire_data.py      # Αρχικοποίηση δεδομένων πυρκαγιών (4 έγγραφα)
 ├── tests/
 │   ├── conftest.py            # Fixtures: in-memory SQLite, TestClient
 │   └── test_api.py            # 7 integration tests
