@@ -27,7 +27,7 @@ def _get_client() -> OpenAI:
     return client
 
 
-def get_collection():
+def get_energy_collection():
     """Get (or create) the ChromaDB collection holding the energy data."""
     return chroma_client.get_or_create_collection(name="energy_data")
 
@@ -51,9 +51,9 @@ def embed_text(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def search(query: str, n_results: int = 3) -> str:
+def search_energy(query: str, n_results: int = 3) -> str:
     """Embed the query and return the top matching energy_data documents, joined into one string."""
-    collection = get_collection()
+    collection = get_energy_collection()
     query_embedding = embed_text(query)
     results = collection.query(
         query_embeddings=[query_embedding],
