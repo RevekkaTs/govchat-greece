@@ -1,7 +1,10 @@
 """Chat endpoints: create/list chat sessions and send/read messages, handing each user message to the AI agent for a reply."""
 
+from typing import Any, cast
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import desc
 from sqlmodel import Session, select
 
 from app.ai.agent import run_agent
@@ -23,13 +26,15 @@ class CreateMessageRequest(BaseModel):
 
 
 router = APIRouter()
+CURRENT_USER_DEPENDENCY = Depends(get_current_user)
+SESSION_DEPENDENCY = Depends(get_session)
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED)
 def create_session(
     body: CreateSessionRequest,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    current_user: User = CURRENT_USER_DEPENDENCY,
+    session: Session = SESSION_DEPENDENCY,
 ):
     """Create a new, empty chat session for the current user."""
     if current_user.id is None:
@@ -50,8 +55,8 @@ def create_session(
 
 @router.get("/sessions", status_code=status.HTTP_200_OK)
 def list_sessions(
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    current_user: User = CURRENT_USER_DEPENDENCY,
+    session: Session = SESSION_DEPENDENCY,
 ):
     """List all chat sessions belonging to the current user."""
     sessions = session.exec(
@@ -72,8 +77,8 @@ def list_sessions(
 def send_message(
     session_id: int,
     body: CreateMessageRequest,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    current_user: User = CURRENT_USER_DEPENDENCY,
+    session: Session = SESSION_DEPENDENCY,
 ):
     """Save the user's message, run it through the AI agent, save the reply, and return both messages."""
     chat_session = session.get(ChatSession, session_id)
@@ -93,7 +98,7 @@ def send_message(
     recent = session.exec(
         select(ChatMessage)
         .where(ChatMessage.session_id == session_id)
-        .order_by(ChatMessage.id.desc())
+        .order_by(desc(cast(Any, ChatMessage.id)))
         .limit(5)
     ).all()
     history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
@@ -144,8 +149,8 @@ def send_message(
 @router.get("/sessions/{session_id}/messages", status_code=status.HTTP_200_OK)
 def get_messages(
     session_id: int,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    current_user: User = CURRENT_USER_DEPENDENCY,
+    session: Session = SESSION_DEPENDENCY,
 ):
     """Return every message in a chat session the current user owns."""
     chat_session = session.get(ChatSession, session_id)

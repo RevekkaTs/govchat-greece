@@ -267,7 +267,7 @@ govchat/
 │   ├── models.py              # SQLModel: User, ChatSession, ChatMessage
 │   ├── db.py                  # SQLite engine, create_db(), get_session()
 │   ├── security.py            # bcrypt hashing, JWT creation
-│   └── dependencies.py        # get_current_user(), get_current_admin()
+│   └── dependencies.py        # get_current_user()
 ├── scripts/
 │   ├── seed_energy_data.py    # Αρχικοποίηση δεδομένων ενεργειακού ισοζυγίου (4 έγγραφα)
 │   ├── seed_road_safety.py    # Αρχικοποίηση δεδομένων τροχαίων (5 έγγραφα)
