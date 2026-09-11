@@ -1,4 +1,11 @@
-"""Embeds text with OpenAI and runs similarity search against the three ChromaDB collections (energy, road safety, fires)."""
+"""RAG layer: embeds text with OpenAI and runs similarity search against the three
+ChromaDB collections (energy_data, road_safety_data, fire_data).
+
+Used two ways: the scripts/seed_*.py scripts call embed_text() once per document when (re)populating a collection; the search_*() functions
+below embed an incoming question and return its top-3 most similar stored documents, joined into one string, for the matching tool in
+tools.py to pass on as context. The OpenAI client is created lazily (see _get_client()) so importing this module doesn't require an API
+key to already be set.
+"""
 
 import os
 
@@ -28,7 +35,7 @@ def _get_client() -> OpenAI:
     return client
 
 
-def get_collection():
+def get_energy_collection():
     """Get (or create) the ChromaDB collection holding the energy data."""
     return chroma_client.get_or_create_collection(name="energy_data")
 
@@ -51,15 +58,16 @@ def embed_text(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def search(query: str, n_results: int = 3) -> str:
+def search_energy(query: str, n_results: int = 3) -> str:
     """Embed the query and return the top matching energy_data documents, joined into one string."""
-    collection = get_collection()
+    collection = get_energy_collection()
     query_embedding = embed_text(query)
     results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
+    documents = results.get("documents") or []
+    if not documents or not documents[0]:
         return "No relevant energy data found."
 
-    chunks = results["documents"][0]
+    chunks = documents[0]
     return "\n\n---\n\n".join(chunks)
 
 
@@ -68,10 +76,11 @@ def search_road_safety(query: str, n_results: int = 3) -> str:
     collection = get_road_safety_collection()
     query_embedding = embed_text(query)
     results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
+    documents = results.get("documents") or []
+    if not documents or not documents[0]:
         return "No relevant road safety data found."
 
-    chunks = results["documents"][0]
+    chunks = documents[0]
     return "\n\n---\n\n".join(chunks)
 
 
@@ -80,8 +89,9 @@ def search_fires(query: str, n_results: int = 3) -> str:
     collection = get_fire_collection()
     query_embedding = embed_text(query)
     results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
+    documents = results.get("documents") or []
+    if not documents or not documents[0]:
         return "No relevant fire data found."
 
-    chunks = results["documents"][0]
+    chunks = documents[0]
     return "\n\n---\n\n".join(chunks)

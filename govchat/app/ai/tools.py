@@ -1,7 +1,6 @@
 """The three tools the AI agent can call, each wrapping a RAG search for one data domain (road safety, fires, energy)."""
 
-from app.ai.rag import search as rag_search
-from app.ai.rag import search_fires, search_road_safety
+from app.ai.rag import search_energy, search_fires, search_road_safety
 
 
 def road_safety_tool(year: int | None = None) -> str:
@@ -16,7 +15,7 @@ def fires_tool(year: int | None = None) -> str:
     return search_fires(query)
 
 
-def energy_tool(query: str) -> str:
-    """Search ADMIE energy balance data using RAG"""
-    context = rag_search(query)
-    return f"Relevant energy data found:\n\n{context}"
+def energy_tool(year: int | None = None) -> str:
+    """Search Greece's electricity balance data from ADMIE (2021-2024)."""
+    query = f"energy balance Greece {year}" if year else "energy balance Greece"
+    return search_energy(query)

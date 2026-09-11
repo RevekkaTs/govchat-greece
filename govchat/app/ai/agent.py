@@ -65,16 +65,16 @@ TOOLS: list[ChatCompletionToolParam] = [
         "type": "function",
         "function": {
             "name": "energy_tool",
-            "description": "Search Greek energy data. Use for questions about ADMIE, the Greek electricity grid, energy production, energy consumption, renewable energy, electricity prices, or the Greek energy sector.",
+            "description": "Get Greece's electricity balance from ADMIE. Use for questions about energy production, energy consumption, the fuel mix (natural gas, renewables, lignite, hydro), or net electricity imports/exports in Greece.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search query about Greek energy data",
+                    "year": {
+                        "type": "integer",
+                        "description": "Filter by year (optional)",
                     }
                 },
-                "required": ["query"],
+                "required": [],
             },
         },
     },

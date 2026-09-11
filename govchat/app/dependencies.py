@@ -24,8 +24,8 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        username = payload.get("sub")
+        if not isinstance(username, str):
             raise credentials_exception
     except JWTError:
         raise credentials_exception

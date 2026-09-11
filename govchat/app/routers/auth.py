@@ -1,5 +1,7 @@
 """Auth endpoints: register a new user, log in for a JWT token, and fetch the current user's profile."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -12,6 +14,8 @@ from app.schemas import TokenResponse, UserResponse
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter()
+session_dependency = Depends(get_session)
+current_user_dependency = Depends(get_current_user)
 
 
 class RegisterRequest(BaseModel):
@@ -27,7 +31,7 @@ class RegisterRequest(BaseModel):
     status_code=status.HTTP_201_CREATED,
     response_model=UserResponse,
 )
-def register(body: RegisterRequest, session: Session = Depends(get_session)):
+def register(body: RegisterRequest, session: Session = session_dependency):
     """Create a new user with a hashed password; rejects a username that's already taken."""
     existing = session.exec(select(User).where(User.username == body.username)).first()
     if existing:
@@ -48,8 +52,8 @@ def register(body: RegisterRequest, session: Session = Depends(get_session)):
     response_model=TokenResponse,
 )
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session),
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Session = session_dependency,
 ):
     """Verify username/password and return a JWT access token."""
     user = session.exec(select(User).where(User.username == form_data.username)).first()
@@ -66,7 +70,7 @@ def login(
 @router.get(
     "/me", summary="Get the current user's details", response_model=UserResponse
 )
-def me(current_user: User = Depends(get_current_user)):
+def me(current_user: User = current_user_dependency):
     """Return the profile of whoever the bearer token belongs to."""
     return UserResponse(
         id=current_user.id,

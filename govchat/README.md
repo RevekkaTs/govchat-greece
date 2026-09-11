@@ -9,7 +9,7 @@ AI chatbot για ελληνικά ανοιχτά κυβερνητικά δεδ�
 Απαντά σε ερωτήσεις φυσικής γλώσσας για τρεις θεματικές περιοχές:
 - **Τροχαία Ατυχήματα**: Στατιστικά ατυχημάτων από την Ελληνική Αστυνομία (2021–2025)
 - **Δασικές Πυρκαγιές**: Στατιστικά πυρκαγιών από το Υπουργείο Κλιματικής Κρίσης (2021–2024)
-- **Ενέργεια**: Παραγωγή και κατανάλωση ηλεκτρικής ενέργειας (δεδομένα ΑΔΜΗΕ)
+- **Ενέργεια**: Ισοζύγιο ηλεκτρικής ενέργειας — μείγμα καυσίμων και εισαγωγές/εξαγωγές (δεδομένα ΑΔΜΗΕ, 2021–2024)
 
 ## Τρόπος Ανάκτησης Δεδομένων
 
@@ -98,7 +98,7 @@ SECRET_KEY=your-random-secret-key
 Εκτελέστε μία φορά πριν την πρώτη χρήση:
 
 ```bash
-python scripts/seed_rag.py           # δεδομένα ενέργειας
+python scripts/seed_energy_data.py   # δεδομένα ενέργειας
 python scripts/seed_road_safety.py   # δεδομένα τροχαίων
 python scripts/seed_fire_data.py     # δεδομένα πυρκαγιών
 ```
@@ -155,7 +155,7 @@ curl -X POST http://localhost:8000/chat/sessions/1/messages \
 ### 4. Γρήγορο demo (χωρίς εγγραφή)
 
 ```bash
-curl "http://localhost:8000/query?q=Τι+είναι+ο+ΑΔΜΗΕ;"
+curl "http://localhost:8000/query?q=Ποιο+ήταν+το+ενεργειακό+ισοζύγιο+το+2023;"
 ```
 
 ## Ενδεικτικές Ερωτήσεις
@@ -171,9 +171,9 @@ curl "http://localhost:8000/query?q=Τι+είναι+ο+ΑΔΜΗΕ;"
 - `Σύγκρινε τις πυρκαγιές του 2021 και του 2022.`
 
 ### Ενέργεια (Ελληνικά)
-- `Ποιοι είναι οι στόχοι για ανανεώσιμες πηγές ενέργειας στην Ελλάδα;`
-- `Πόσο κόστιζε η ηλεκτρική ενέργεια χονδρικής το 2023;`
-- `Ποια είναι η πρόοδος της απολιγνιτοποίησης στην Ελλάδα;`
+- `Ποιο ήταν το ενεργειακό ισοζύγιο της Ελλάδας το 2023;`
+- `Πόσο ήταν το μερίδιο των ΑΠΕ στην παραγωγή ρεύματος το 2022;`
+- `Σύγκρινε το μείγμα καυσίμων του 2021 και του 2024.`
 
 ### Forest Fires (English)
 - `How many hectares burned in Greece in 2023?`
@@ -181,8 +181,8 @@ curl "http://localhost:8000/query?q=Τι+είναι+ο+ΑΔΜΗΕ;"
 - `Compare forest fires in Greece between 2021 and 2022.`
 
 ### Energy (English)
-- `How much electricity did Greece produce from solar energy in 2023?`
-- `What countries is Greece electrically connected to?`
+- `What was Greece's electricity balance in 2023?`
+- `What share of Greece's electricity came from renewables in 2024?`
 - `What is the role of natural gas in Greece's energy mix?`
 
 ## Εκτέλεση Tests
@@ -203,5 +203,5 @@ Screenshots στον φάκελο [`docs/screenshots/`](docs/screenshots/).
 - **Μνήμη συνομιλίας**: Συμπερίληψη προηγούμενων μηνυμάτων στο context του agent
 - **Streaming απαντήσεις**: Ροή token-by-token για καλύτερη εμπειρία χρήστη
 - **Dashboard διαχειριστή**: Προβολή χρηστών και συνομιλιών μέσω admin endpoints
-- **Βελτιωμένο RAG**: Φόρτωση πραγματικών δεδομένων ΑΔΜΗΕ από PDF αναφορές
+- **Ζωντανά δεδομένα ΑΠΕ και διασυνδέσεων**: Επέκταση του live fetch από ΑΔΜΗΕ πέρα από το ενεργειακό ισοζύγιο (ωριαία ΑΠΕ, διασυνδέσεις)
 - **Docker**: Dockerfile για εύκολη ανάπτυξη
