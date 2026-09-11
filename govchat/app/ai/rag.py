@@ -1,9 +1,10 @@
 """Embeds text with OpenAI and runs similarity search against the three ChromaDB collections (energy, road safety, fires)."""
 
 import os
+
 import chromadb
-from openai import OpenAI
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv(override=True)
 
@@ -45,8 +46,7 @@ def get_fire_collection():
 def embed_text(text: str) -> list[float]:
     """Turn text into an embedding vector using OpenAI's text-embedding-3-small model."""
     response = _get_client().embeddings.create(
-        model="text-embedding-3-small",
-        input=text
+        model="text-embedding-3-small", input=text
     )
     return response.data[0].embedding
 
@@ -55,10 +55,7 @@ def search(query: str, n_results: int = 3) -> str:
     """Embed the query and return the top matching energy_data documents, joined into one string."""
     collection = get_collection()
     query_embedding = embed_text(query)
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results
-    )
+    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
     if not results["documents"][0]:
         return "No relevant energy data found."
 
@@ -70,10 +67,7 @@ def search_road_safety(query: str, n_results: int = 3) -> str:
     """Embed the query and return the top matching road_safety_data documents, joined into one string."""
     collection = get_road_safety_collection()
     query_embedding = embed_text(query)
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results
-    )
+    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
     if not results["documents"][0]:
         return "No relevant road safety data found."
 
@@ -85,10 +79,7 @@ def search_fires(query: str, n_results: int = 3) -> str:
     """Embed the query and return the top matching fire_data documents, joined into one string."""
     collection = get_fire_collection()
     query_embedding = embed_text(query)
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results
-    )
+    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
     if not results["documents"][0]:
         return "No relevant fire data found."
 

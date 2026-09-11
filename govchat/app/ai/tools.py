@@ -1,6 +1,7 @@
 """The three tools the AI agent can call, each wrapping a RAG search for one data domain (road safety, fires, energy)."""
 
-from app.ai.rag import search as rag_search, search_road_safety, search_fires
+from app.ai.rag import search as rag_search
+from app.ai.rag import search_fires, search_road_safety
 
 
 def road_safety_tool(year: int | None = None) -> str:
