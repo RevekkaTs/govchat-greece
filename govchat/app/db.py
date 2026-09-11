@@ -1,8 +1,10 @@
 """SQLite database setup: the engine, and a session dependency used by FastAPI routes."""
 
-from sqlmodel import SQLModel, create_engine, Session
+import os
 
-DATABASE_URL = "sqlite:///./govchat.db"
+from sqlmodel import Session, SQLModel, create_engine
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./govchat.db")
 engine = create_engine(DATABASE_URL, echo=False)
 
 

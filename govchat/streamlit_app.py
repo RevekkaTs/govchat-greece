@@ -1,9 +1,11 @@
 """The browser chat UI (Streamlit): login screen, sidebar session list, and the chat window — talks to the FastAPI backend only over HTTP."""
 
+import os
+
 import requests
 import streamlit as st
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 DOMAIN_LABELS = {
     "road_safety": "🚗 Τροχαία ατυχήματα",
@@ -32,7 +34,8 @@ def api_login(username: str, password: str):
     """Call the backend's login endpoint; returns None if the request itself fails (e.g. server not running)."""
     try:
         return requests.post(
-            f"{API_URL}/auth/login", data={"username": username, "password": password}
+            f"{API_URL}/v1/auth/login",
+            data={"username": username, "password": password},
         )
     except Exception:
         return None
@@ -42,7 +45,7 @@ def api_create_session(token: str, title: str = "Νέα συνομιλία"):
     """Create a new chat session via the backend; returns None on any failure."""
     try:
         r = requests.post(
-            f"{API_URL}/chat/sessions",
+            f"{API_URL}/v1/chat/sessions",
             headers={"Authorization": f"Bearer {token}"},
             json={"title": title},
         )
@@ -57,7 +60,7 @@ def api_get_sessions(token: str):
     """Fetch the current user's chat sessions from the backend; returns [] on any failure."""
     try:
         r = requests.get(
-            f"{API_URL}/chat/sessions",
+            f"{API_URL}/v1/chat/sessions",
             headers={"Authorization": f"Bearer {token}"},
         )
         if r.status_code == 200:
@@ -71,7 +74,7 @@ def api_get_messages(token: str, session_id: int):
     """Fetch all messages in one chat session from the backend; returns [] on any failure."""
     try:
         r = requests.get(
-            f"{API_URL}/chat/sessions/{session_id}/messages",
+            f"{API_URL}/v1/chat/sessions/{session_id}/messages",
             headers={"Authorization": f"Bearer {token}"},
         )
         if r.status_code == 200:
@@ -85,7 +88,7 @@ def api_send_message(token: str, session_id: int, content: str):
     """Send a user message to the backend and get back the AI's reply; returns a dict with an "error" key instead of raising if something goes wrong."""
     try:
         r = requests.post(
-            f"{API_URL}/chat/sessions/{session_id}/messages",
+            f"{API_URL}/v1/chat/sessions/{session_id}/messages",
             headers={"Authorization": f"Bearer {token}"},
             json={"content": content},
             timeout=60,

@@ -6,12 +6,11 @@ from sqlmodel import Field, SQLModel
 
 
 class User(SQLModel, table=True):
-    """A registered user: username, hashed password, and whether they're an admin."""
+    """A registered user: username and hashed password."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True)
     hashed_password: str
-    is_admin: bool = False
 
 
 class ChatSession(SQLModel, table=True):
