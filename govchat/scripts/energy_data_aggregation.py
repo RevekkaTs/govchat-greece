@@ -38,11 +38,13 @@ class YearEnergyAggregate:
 
 def aggregate_year(year: int, rows: list[dict]) -> YearEnergyAggregate:
     """Sum each fuel bucket's energy_mwh for one year's raw balance rows, merging relabeled fuel categories."""
+    matched_rows = [row for row in rows if row["date"].startswith(str(year))]
+    if not matched_rows:
+        raise ValueError(f"No energy balance rows found for {year}")
+
     sums = {"gas": 0.0, "renewables": 0.0, "lignite": 0.0, "hydro": 0.0, "net_imports": 0.0, "total": 0.0}
 
-    for row in rows:
-        if not row["date"].startswith(str(year)):
-            continue
+    for row in matched_rows:
         bucket = FUEL_BUCKETS.get(row["fuel"])
         if bucket is None:
             continue

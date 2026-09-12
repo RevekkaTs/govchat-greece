@@ -88,7 +88,9 @@ def fetch_year_rows(resource: dict, year: int) -> list[dict]:
                 stremmata += value
             elif isinstance(value, str) and value.strip():
                 try:
-                    stremmata += float(value.strip())
+                    # Guard against a Greek-locale comma decimal (e.g. "12,5")
+                    # in addition to the normal period-decimal case.
+                    stremmata += float(value.strip().replace(",", "."))
                 except ValueError as exc:
                     raise RuntimeError(
                         f"Fire data XLS for {year}: cell at row {r}, "
@@ -139,7 +141,11 @@ def seed():
     aggregates = fetch_all_aggregates()
 
     documents = [
-        {"id": f"fires_{aggregate.year}", "text": render_year_summary(aggregate)}
+        {
+            "id": f"fires_{aggregate.year}",
+            "text": render_year_summary(aggregate),
+            "metadata": {"year": aggregate.year},
+        }
         for aggregate in aggregates
     ]
 

@@ -51,3 +51,10 @@ def test_aggregate_year_raises_when_categories_dont_sum_to_total():
 
     with pytest.raises(ValueError):
         aggregate_year(2022, rows)
+
+
+def test_aggregate_year_raises_when_no_rows_match_the_year():
+    rows = [_row("2022-01-01 00:00:00", "ΣΥΝΟΛΟ", 200.0)]
+
+    with pytest.raises(ValueError):
+        aggregate_year(2099, rows)

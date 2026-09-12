@@ -116,28 +116,33 @@
 
 ## 5. FastAPI Endpoints
 
-### Αυθεντικοποίηση (`/auth`)
+Όλα τα endpoints είναι versioned κάτω από `/v1` (εκτός από ένα `/v2` endpoint, βλ. παρακάτω).
+
+### Αυθεντικοποίηση (`/v1/auth`)
 
 | Endpoint | Μέθοδος | Auth | Περιγραφή |
 |----------|---------|------|-----------|
-| `/auth/register` | POST | Όχι | Δημιουργία νέου λογαριασμού. Body: `{username, password}`. Επιστρέφει `{id, username}`. |
-| `/auth/login` | POST | Όχι | OAuth2 form login. Body: `username=...&password=...`. Επιστρέφει `{access_token, token_type}`. |
-| `/auth/me` | GET | Ναι | Λεπτομέρειες τρέχοντος χρήστη. Απαιτεί Bearer token. |
+| `/v1/auth/register` | POST | Όχι | Δημιουργία νέου λογαριασμού. Body: `{username, password}`. Επιστρέφει `{id, username}`. |
+| `/v1/auth/login` | POST | Όχι | OAuth2 form login. Body: `username=...&password=...`. Επιστρέφει `{access_token, token_type}`. |
+| `/v1/auth/me` | GET | Ναι | Λεπτομέρειες τρέχοντος χρήστη. Απαιτεί Bearer token. |
+| `/v2/auth/me` | GET | Ναι | Ίδιο με το `/v1/auth/me`, versioned ξεχωριστά κάτω από `/v2`. |
 
-### Συνομιλίες (`/chat`)
-
-| Endpoint | Μέθοδος | Auth | Περιγραφή |
-|----------|---------|------|-----------|
-| `/chat/sessions` | POST | Ναι | Δημιουργία νέας συνεδρίας. Προαιρετικό body: `{title}`. |
-| `/chat/sessions` | GET | Ναι | Λίστα όλων των συνεδριών του χρήστη. |
-| `/chat/sessions/{id}/messages` | POST | Ναι | Αποστολή μηνύματος. Body: `{content}`. Εκτελεί τον agent και επιστρέφει ζεύγος μηνυμάτων (χρήστη + assistant). |
-| `/chat/sessions/{id}/messages` | GET | Ναι | Ανάκτηση όλων των μηνυμάτων συνεδρίας. |
-
-### Δημόσιο API (`/query`)
+### Συνομιλίες (`/v1/chat`)
 
 | Endpoint | Μέθοδος | Auth | Περιγραφή |
 |----------|---------|------|-----------|
-| `/query?q=...` | GET | Όχι | Γρήγορη ερώτηση χωρίς εγγραφή. Επιστρέφει `{question, answer}`. |
+| `/v1/chat/sessions` | POST | Ναι | Δημιουργία νέας συνεδρίας. Προαιρετικό body: `{title}`. |
+| `/v1/chat/sessions` | GET | Ναι | Λίστα όλων των συνεδριών του χρήστη. |
+| `/v1/chat/sessions/{id}/messages` | POST | Ναι | Αποστολή μηνύματος. Body: `{content}`. Εκτελεί τον agent και επιστρέφει ζεύγος μηνυμάτων (χρήστη + assistant). |
+| `/v1/chat/sessions/{id}/messages` | GET | Ναι | Ανάκτηση όλων των μηνυμάτων συνεδρίας. |
+| `/v1/chat/sessions/{id}/export` | GET | Ναι | Εξαγωγή συνεδρίας (τίτλος + μηνύματα) ως JSON. |
+| `/v1/chat/sessions/import` | POST | Ναι | Εισαγωγή συνεδρίας από ένα εξαγόμενο JSON, ως νέα συνεδρία του τρέχοντος χρήστη. |
+
+### Δημόσιο API (`/v1/query`)
+
+| Endpoint | Μέθοδος | Auth | Περιγραφή |
+|----------|---------|------|-----------|
+| `/v1/query?q=...` | GET | Όχι | Γρήγορη ερώτηση χωρίς εγγραφή. Επιστρέφει `{question, answer}`. |
 
 ### Τεκμηρίωση
 
@@ -356,14 +361,14 @@ streamlit run streamlit_app.py
 
 **Εγγραφή:**
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "password": "mypassword"}'
 ```
 
 **Σύνδεση:**
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:8000/v1/auth/login \
   -d "username=testuser&password=mypassword"
 # Απάντηση: {"access_token": "eyJ...", "token_type": "bearer"}
 ```
@@ -373,13 +378,13 @@ curl -X POST http://localhost:8000/auth/login \
 TOKEN="eyJ..."  # από το βήμα σύνδεσης
 
 # Δημιουργία συνεδρίας
-curl -X POST http://localhost:8000/chat/sessions \
+curl -X POST http://localhost:8000/v1/chat/sessions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # Αποστολή μηνύματος
-curl -X POST http://localhost:8000/chat/sessions/1/messages \
+curl -X POST http://localhost:8000/v1/chat/sessions/1/messages \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"content": "Πόσοι άνθρωποι σκοτώθηκαν σε τροχαία το 2023;"}'
@@ -387,7 +392,7 @@ curl -X POST http://localhost:8000/chat/sessions/1/messages \
 
 **Γρήγορη ερώτηση (χωρίς εγγραφή):**
 ```bash
-curl "http://localhost:8000/query?q=Πόσα+εκτάρια+κάηκαν+το+2023;"
+curl "http://localhost:8000/v1/query?q=Πόσα+εκτάρια+κάηκαν+το+2023;"
 ```
 
 ### Ενδεικτικές Ερωτήσεις
@@ -424,23 +429,18 @@ curl "http://localhost:8000/query?q=Πόσα+εκτάρια+κάηκαν+το+20
 
 | Περιορισμός | Περιγραφή |
 |------------|-----------|
-| **Στατικά δεδομένα** | Τα δεδομένα είναι προ-αποθηκευμένα. Δεν γίνεται live fetch από data.gov.gr. |
-| **Μικρό corpus** | Κάθε θεματική έχει 4–10 έγγραφα. Πολύ ειδικές ερωτήσεις μπορεί να μην απαντηθούν. |
+| **Live fetch μόνο στο seeding** | Τα δεδομένα ανανεώνονται τρέχοντας τα `scripts/seed_*.py` (live fetch από data.gov.gr). Κατά τη διάρκεια μιας συνομιλίας δεν γίνεται καμία εξωτερική κλήση — μόνο ChromaDB similarity search πάνω στα ήδη σποραρισμένα έγγραφα. |
+| **Μικρό corpus** | Κάθε θεματική έχει 4–8 έγγραφα (ένα ανά έτος). Πολύ ειδικές ερωτήσεις μπορεί να μην απαντηθούν. |
 | **Μνήμη συνομιλίας** | Το ιστορικό περιορίζεται στα τελευταία 5 μηνύματα (αποφυγή υπέρβασης context window). |
-| **Ένα εργαλείο ανά ερώτηση** | Ο agent επιλέγει ένα εργαλείο. Cross-domain ερωτήσεις (π.χ. τροχαία ΚΑΙ πυρκαγιές) δεν υποστηρίζονται. |
-| **Κόστος OpenAI** | Κάθε ερώτηση κάνει 2 κλήσεις στο OpenAI API (embedding + 2× LLM). |
+| **Κόστος OpenAI** | Κάθε ερώτηση κάνει τουλάχιστον 2 κλήσεις στο OpenAI API (embedding + 2× LLM ανά εργαλείο που καλείται). |
 
 ---
 
 ## 13. Μελλοντικές Επεκτάσεις
 
 - **Περισσότερα datasets:** στατιστικά εγκληματικότητας, υγείας, οικονομικοί δείκτες από data.gov.gr
-- **Live data fetching:** αυτόματη ενημέρωση ChromaDB από official APIs
 - **Streaming απαντήσεις:** token-by-token streaming για καλύτερη εμπειρία
-- **Multi-tool agent:** ερωτήσεις που αφορούν πολλαπλές θεματικές ταυτόχρονα
-- **Βελτιωμένο RAG:** chunking πραγματικών PDF εκθέσεων, metadata filtering
-- **Admin dashboard:** διαχείριση χρηστών και επισκόπηση συνεδριών
-- **Docker:** containerization για εύκολη ανάπτυξη
+- **Βελτιωμένο RAG:** chunking πραγματικών PDF εκθέσεων
 - **Ανάπτυξη:** deploy σε Render/Railway/Fly.io
 
 ---
@@ -451,12 +451,13 @@ curl "http://localhost:8000/query?q=Πόσα+εκτάρια+κάηκαν+το+20
 pytest tests/ -v
 ```
 
-**7 integration tests** που καλύπτουν:
-- Εγγραφή χρήστη
-- Σύνδεση και λήψη token
-- Δημιουργία συνεδρίας (με και χωρίς authentication)
-- Αποστολή μηνύματος σε ανύπαρκτη συνεδρία (404)
-- Απομόνωση δεδομένων μεταξύ χρηστών (403)
-- Δημόσιο endpoint `/query`
+**22 tests** συνολικά:
+- `test_api.py` (9): εγγραφή, login, δημιουργία συνεδρίας (με και χωρίς authentication),
+  αποστολή μηνύματος σε ανύπαρκτη συνεδρία (404), απομόνωση δεδομένων μεταξύ χρηστών (403),
+  δημόσιο endpoint `/v1/query`, `/v2/auth/me`, απόρριψη μη έγκυρου role σε εισαγωγή συνεδρίας (422)
+- `test_data_gov_gr.py` (6): αντιστοίχιση πόρου ανά έτος, και ότι το `replace_collection_documents`
+  περνάει σωστά τα per-document metadata (year) στο ChromaDB
+- `test_seed_energy_data.py` / `test_seed_fire_data.py` / `test_seed_road_safety.py` (7):
+  καθαρή λογική συγκεντρωτικών υπολογισμών ανά έτος και οι σχετικοί ελέγχοι συνέπειας
 
 Tests χρησιμοποιούν in-memory SQLite και mock του OpenAI API — δεν απαιτείται OPENAI_API_KEY.

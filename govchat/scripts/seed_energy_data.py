@@ -34,7 +34,10 @@ def fetch_all_rows(resource: dict) -> list[dict]:
     response = requests.get(resource["url"], timeout=60)
     response.raise_for_status()
 
-    reader = csv.DictReader(io.StringIO(response.content.decode("utf-8")))
+    # "utf-8-sig" strips a leading BOM if present (common in Excel-exported
+    # Greek open data) -- plain "utf-8" would leave it stuck to the first
+    # header, turning "date" into "﻿date" and breaking every row lookup.
+    reader = csv.DictReader(io.StringIO(response.content.decode("utf-8-sig")))
     rows = []
     for row in reader:
         rows.append(
@@ -91,7 +94,11 @@ def seed():
     aggregates = fetch_all_aggregates()
 
     documents = [
-        {"id": f"energy_balance_{aggregate.year}", "text": render_year_summary(aggregate)}
+        {
+            "id": f"energy_balance_{aggregate.year}",
+            "text": render_year_summary(aggregate),
+            "metadata": {"year": aggregate.year},
+        }
         for aggregate in aggregates
     ]
 
