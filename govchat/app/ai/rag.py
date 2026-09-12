@@ -1,4 +1,11 @@
-"""Embeds text with OpenAI and runs similarity search against the three ChromaDB collections (energy, road safety, fires)."""
+"""RAG layer: embeds text with OpenAI and runs similarity search against the three
+ChromaDB collections (energy_data, road_safety_data, fire_data).
+
+Used two ways: the scripts/seed_*.py scripts call embed_text() once per document when (re)populating a collection; the search_*() functions
+below embed an incoming question and return its top-3 most similar stored documents, joined into one string, for the matching tool in
+tools.py to pass on as context. The OpenAI client is created lazily (see _get_client()) so importing this module doesn't require an API
+key to already be set.
+"""
 
 import os
 
@@ -28,7 +35,7 @@ def _get_client() -> OpenAI:
     return client
 
 
-def get_collection():
+def get_energy_collection():
     """Get (or create) the ChromaDB collection holding the energy data."""
     return chroma_client.get_or_create_collection(name="energy_data")
 
@@ -51,37 +58,39 @@ def embed_text(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def search(query: str, n_results: int = 3) -> str:
-    """Embed the query and return the top matching energy_data documents, joined into one string."""
-    collection = get_collection()
+def _search(
+    collection, domain_label: str, query: str, year: int | None, n_results: int
+) -> str:
+    """Embed the query and return the top matching documents from collection, joined
+    into one string. When year is given, restricts the search to documents whose
+    "year" metadata matches exactly, rather than relying on the embedding to happen
+    to favor the right year's document.
+    """
     query_embedding = embed_text(query)
-    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
-        return "No relevant energy data found."
+    where = {"year": year} if year is not None else None
+    results = collection.query(
+        query_embeddings=[query_embedding], n_results=n_results, where=where
+    )
+    documents = results.get("documents") or []
+    if not documents or not documents[0]:
+        if year is not None:
+            return f"No {domain_label} data available for {year}."
+        return f"No relevant {domain_label} data found."
 
-    chunks = results["documents"][0]
+    chunks = documents[0]
     return "\n\n---\n\n".join(chunks)
 
 
-def search_road_safety(query: str, n_results: int = 3) -> str:
-    """Embed the query and return the top matching road_safety_data documents, joined into one string."""
-    collection = get_road_safety_collection()
-    query_embedding = embed_text(query)
-    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
-        return "No relevant road safety data found."
-
-    chunks = results["documents"][0]
-    return "\n\n---\n\n".join(chunks)
+def search_energy(query: str, year: int | None = None, n_results: int = 3) -> str:
+    """Search the energy_data collection, optionally restricted to an exact year."""
+    return _search(get_energy_collection(), "energy", query, year, n_results)
 
 
-def search_fires(query: str, n_results: int = 3) -> str:
-    """Embed the query and return the top matching fire_data documents, joined into one string."""
-    collection = get_fire_collection()
-    query_embedding = embed_text(query)
-    results = collection.query(query_embeddings=[query_embedding], n_results=n_results)
-    if not results["documents"][0]:
-        return "No relevant fire data found."
+def search_road_safety(query: str, year: int | None = None, n_results: int = 3) -> str:
+    """Search the road_safety_data collection, optionally restricted to an exact year."""
+    return _search(get_road_safety_collection(), "road safety", query, year, n_results)
 
-    chunks = results["documents"][0]
-    return "\n\n---\n\n".join(chunks)
+
+def search_fires(query: str, year: int | None = None, n_results: int = 3) -> str:
+    """Search the fire_data collection, optionally restricted to an exact year."""
+    return _search(get_fire_collection(), "fire", query, year, n_results)

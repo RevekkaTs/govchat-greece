@@ -49,17 +49,26 @@ def replace_collection_documents(collection, documents: list[dict], embed_fn) ->
     delete the collection's existing documents and add the new ones — so
     a failed embedding call never leaves the collection with some old
     documents deleted and only some new ones added.
+
+    Each document dict may carry an optional "metadata" key (a plain dict,
+    e.g. {"year": 2022}) used for exact-match filtering later; it defaults
+    to {} when absent.
     """
     print("Embedding new documents...")
-    embedded = [(doc["id"], doc["text"], embed_fn(doc["text"])) for doc in documents]
+    embedded = [
+        (doc["id"], doc["text"], doc.get("metadata", {}), embed_fn(doc["text"]))
+        for doc in documents
+    ]
 
     existing_ids = collection.get()["ids"]
     if existing_ids:
         collection.delete(ids=existing_ids)
         print(f"Removed {len(existing_ids)} existing documents.")
 
-    for doc_id, text, embedding in embedded:
-        collection.add(ids=[doc_id], embeddings=[embedding], documents=[text])
+    for doc_id, text, metadata, embedding in embedded:
+        collection.add(
+            ids=[doc_id], embeddings=[embedding], documents=[text], metadatas=[metadata]
+        )
         print(f"  Added: {doc_id}")
 
     print(f"Done! Collection now has {collection.count()} documents.")

@@ -136,7 +136,11 @@ def seed():
     all_stats = fetch_all_stats()
 
     documents = [
-        {"id": f"road_accidents_{stats.year}", "text": render_year_summary(stats)}
+        {
+            "id": f"road_accidents_{stats.year}",
+            "text": render_year_summary(stats),
+            "metadata": {"year": stats.year},
+        }
         for stats in all_stats
     ]
 
